@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#if UNITY_ANDROID && !UNITY_EDITOR
+#if !UNITY_EDITOR
+#if UNITY_ANDROID
 #define ANDROID_DEVICE
+#endif
 #endif
 
 using UnityEngine;
@@ -40,12 +42,10 @@ public class Cardboard : MonoBehaviour {
     Right
   }
 
-#if UNITY_IPHONE && !UNITY_EDITOR
-  [DllImport("__Internal")]
-#else
+#if ANDROID_DEVICE
   [DllImport("RenderingPlugin")]
-#endif
   private static extern void InitFromUnity(int textureID);
+#endif
 
   // The singleton instance of the Cardboard class.
   private static Cardboard sdk = null;
@@ -71,6 +71,11 @@ public class Cardboard : MonoBehaviour {
     set {
       vrModeEnabled = value;
     }
+  }
+
+  // A target function for Canvas UI buttons.
+  public void ToggleVRMode() {
+    vrModeEnabled = !vrModeEnabled;
   }
 
   [SerializeField]
@@ -125,6 +130,21 @@ public class Cardboard : MonoBehaviour {
   [HideInInspector]
   private bool tapIsTrigger = false;
 
+  // The fraction of the built-in neck model to use, in the range [0..1].
+  public float NeckModelScale {
+    get { return neckModelScale; }
+    set {
+      neckModelScale = Mathf.Clamp01(value);
+#if ANDROID_DEVICE
+      CallActivityMethod("setNeckModelFactor", neckModelScale);
+#endif
+    }
+  }
+
+  [SerializeField]
+  [HideInInspector]
+  private float neckModelScale = 0.0f;
+
   // Whether the back button exits the application.
   public bool BackButtonExitsApp {
     get { return backButtonExitsApp; }
@@ -136,6 +156,22 @@ public class Cardboard : MonoBehaviour {
   [SerializeField]
   [HideInInspector]
   private bool backButtonExitsApp = true;
+
+  // When enabled, drift in the gyro readings is estimated and removed.  Currently only
+  // works on Android.
+  public bool AutoDriftCorrection {
+    get { return autoDriftCorrection; }
+    set {
+      autoDriftCorrection = value;
+#if ANDROID_DEVICE
+      CallActivityMethod("setGyroBiasEstimationEnabled", autoDriftCorrection);
+#endif
+    }
+  }
+
+  [SerializeField]
+  [HideInInspector]
+  private bool autoDriftCorrection = true;
 
   // Whether the device is in a Cardboard.
   public bool InCardboard { get; private set; }
@@ -162,7 +198,7 @@ public class Cardboard : MonoBehaviour {
   public RenderTexture StereoScreen {
     get {
       // Don't need it except for distortion correction.
-      if (!nativeDistortionCorrection || !vrModeEnabled) {
+      if (!nativeDistortionCorrection || !vrModeEnabled || captureFramebuffer) {
         return null;
       }
       if (stereoScreen == null) {
@@ -173,16 +209,20 @@ public class Cardboard : MonoBehaviour {
   }
 
   private RenderTexture stereoScreen;
+  private bool captureFramebuffer;
 
   // Describes the current device, including phone screen.
   public CardboardProfile Profile { get; private set; }
 
-  // Transform from body to head.
+  // Transform of head from origin in the tracking system.
+  // Currently the position is just constructed from a rotated neck model.
   public Matrix4x4 HeadView { get { return headView; } }
   private Matrix4x4 headView;
 
-  // Transform from body to head as a Quaternion.
+  // Transform of head from origin in the tracking system, as a Quaternion + Vector3.
+  // Currently the position is just constructed from a rotated neck model.
   public Quaternion HeadRotation { get; private set; }
+  public Vector3 HeadPosition { get; private set; }
 
   // The transformation from head to eye.
   public Matrix4x4 EyeView(Cardboard.Eye eye) {
@@ -278,11 +318,6 @@ public class Cardboard : MonoBehaviour {
           supportsAndroidRenderEvent = isAtLeastUnity4_5 && isAndroid;
       }
 
-      public bool canApplyDistortionCorrection() {
-          return supportsRenderTextures && supportsAndroidRenderEvent
-              && canAccessActivity;
-      }
-
       public string getDistortionCorrectionDiagnostic() {
           List<string> causes = new List<string>();
           if (!isAndroid) {
@@ -314,10 +349,10 @@ public class Cardboard : MonoBehaviour {
       }
 
       config.initialize();
-
 #if ANDROID_DEVICE
       ConnectToActivity();
 #endif
+
       CreateStereoScreen();
       UpdateScreenData();
 
@@ -325,6 +360,8 @@ public class Cardboard : MonoBehaviour {
       EnableAlignmentMarker = enableAlignmentMarker;
       EnableSettingsButton = enableSettingsButton;
       TapIsTrigger = tapIsTrigger;
+      AutoDriftCorrection = autoDriftCorrection;
+      NeckModelScale = neckModelScale;
 
       InCardboard = newInCardboard = false;
 #if UNITY_EDITOR
@@ -332,8 +369,21 @@ public class Cardboard : MonoBehaviour {
           SetInCardboard(true);
       }
 #endif
+  }
 
-      StartCoroutine("EndOfFrame");
+  void OnEnable() {
+    StartCoroutine("EndOfFrame");
+  }
+
+  void OnDisable() {
+    StopCoroutine("EndOfFrame");
+  }
+
+  void OnApplicationPause(bool paused) {
+    if (!paused) {
+      // Device configuration may have changed.
+      UpdateScreenData();
+    }
   }
 
   void Update() {
@@ -341,7 +391,7 @@ public class Cardboard : MonoBehaviour {
           Application.Quit();
       }
 #if UNITY_EDITOR
-      SimulateTrigger();
+      SimulateInput();
 #endif
   }
 
@@ -351,12 +401,15 @@ public class Cardboard : MonoBehaviour {
       if (updated) {
           return true;
       }
+
 #if ANDROID_DEVICE
       UpdateFrameParamsFromActivity();
-#else
+#elif UNITY_EDITOR
       UpdateSimulatedFrameParams();
 #endif
+
       HeadRotation = Quaternion.LookRotation(headView.GetColumn(2), headView.GetColumn(1));
+      HeadPosition = headView.GetColumn(3);
       leftEyeOffset = leftEyeView.GetColumn(3);
       rightEyeOffset = rightEyeView.GetColumn(3);
       updated = true;
@@ -365,37 +418,46 @@ public class Cardboard : MonoBehaviour {
 
   public void Recenter() {
 #if ANDROID_DEVICE
-      CallActivityMethod("resetHeadTracker");
+    CallActivityMethod("resetHeadTracker");
 #elif UNITY_EDITOR
-      mouseX = mouseY = mouseZ = 0;
+    mouseX = mouseY = mouseZ = 0;
 #endif
   }
 
   public void UpdateScreenData() {
 #if ANDROID_DEVICE
     UpdateScreenDataFromActivity();
+#elif UNITY_EDITOR
+    UpdateSimulatedScreenData();
 #else
     Profile = CardboardProfile.Default.Clone();
 #endif
   }
 
   public void CreateStereoScreen(int x, int y) {
-    if (config.canApplyDistortionCorrection()) {
-      Debug.Log("Creating new cardboard screen texture.");
-      if (stereoScreen != null) {
-        stereoScreen.Release();
-      }
-      stereoScreen = new RenderTexture(x, y, 16, RenderTextureFormat.RGB565);
-      stereoScreen.Create();
-      InitFromUnity(stereoScreen.GetNativeTextureID());
-    } else {
+    if (stereoScreen != null) {
+      stereoScreen.Release();
       stereoScreen = null;
-      if (!Application.isEditor) {
-        nativeDistortionCorrection = false;
-        Debug.LogWarning("Lens distortion-correction disabled. Causes: [" +
-                         config.getDistortionCorrectionDiagnostic() + "]");
-      }
     }
+    captureFramebuffer = false;
+    if (config.canAccessActivity && config.supportsAndroidRenderEvent) {
+      if (config.supportsRenderTextures) {
+        Debug.Log("Creating new cardboard screen texture.");
+        stereoScreen = new RenderTexture(x, y, 16, RenderTextureFormat.RGB565);
+        stereoScreen.Create();
+      } else {
+        captureFramebuffer = true;
+      }
+    } else if (!Application.isEditor) {
+      nativeDistortionCorrection = false;
+      Debug.LogWarning("Lens distortion-correction disabled. Causes: [" +
+                       config.getDistortionCorrectionDiagnostic() + "]");
+    }
+#if ANDROID_DEVICE
+    if (stereoScreen != null || captureFramebuffer) {
+      InitFromUnity(stereoScreen != null ? stereoScreen.GetNativeTextureID() : 0);
+    }
+#endif
   }
 
   public void CreateStereoScreen() {
@@ -436,7 +498,6 @@ public class Cardboard : MonoBehaviour {
   }
 
   void OnDestroy() {
-      StopCoroutine("EndOfFrame");
       if (sdk == this) {
           sdk = null;
       }
@@ -451,7 +512,7 @@ public class Cardboard : MonoBehaviour {
           yield return new WaitForEndOfFrame();
           if (UpdateState() && vrModeEnabled && !Application.isEditor) {
               GL.InvalidateState();  // necessary for Windows, but not Mac.
-              if (stereoScreen != null && nativeDistortionCorrection) {
+              if (nativeDistortionCorrection) {
                 GL.IssuePluginEvent(kPerformDistortionCorrection);
               }
               if (enableSettingsButton || enableAlignmentMarker) {
@@ -480,7 +541,7 @@ public class Cardboard : MonoBehaviour {
     float halfHeight = p.screen.height / 2;
     // Viewport center, measured from left lens position.
     float centerX = p.device.lenses.separation / 2 - halfWidth;
-    float centerY = halfHeight + p.screen.border - p.device.lenses.height;
+    float centerY = -p.VerticalLensOffset;
     float centerZ = p.device.lenses.screenDistance;
     // Tan-angles of the viewport edges, as seen through the lens.
     float screenLeft = p.device.distortion.distort((centerX - halfWidth) / centerZ);
@@ -507,7 +568,7 @@ public class Cardboard : MonoBehaviour {
     float halfHeight = p.screen.height / 2;
     // Viewport center, measured from left lens position.
     float centerX = p.device.lenses.separation / 2 - halfWidth;
-    float centerY = halfHeight + p.screen.border - p.device.lenses.height;
+    float centerY = -p.VerticalLensOffset;
     float centerZ = p.device.lenses.screenDistance;
     // Tan-angles of the viewport edges, as seen through the lens.
     float screenLeft = (centerX - halfWidth) / centerZ;
@@ -526,7 +587,7 @@ public class Cardboard : MonoBehaviour {
     CardboardProfile p = Profile;
     float dist = p.device.lenses.screenDistance;
     float eyeX = (p.screen.width - p.device.lenses.separation) / 2;
-    float eyeY = p.device.lenses.height - p.screen.border;
+    float eyeY = p.VerticalLensOffset + p.screen.height / 2;
     float left = (undistortedFrustum[0] * dist + eyeX) / p.screen.width;
     float top = (undistortedFrustum[1] * dist + eyeY) / p.screen.height;
     float right = (undistortedFrustum[2] * dist + eyeX) / p.screen.width;
@@ -534,7 +595,42 @@ public class Cardboard : MonoBehaviour {
     return new Rect(left, bottom, right - left, top - bottom);
   }
 
+  private static Matrix4x4 MakeProjection(float l, float t, float r, float b, float n, float f) {
+    Matrix4x4 m = Matrix4x4.zero;
+    m[0, 0] = 2 * n / (r - l);
+    m[1, 1] = 2 * n / (t - b);
+    m[0, 2] = (r + l) / (r - l);
+    m[1, 2] = (t + b) / (t - b);
+    m[2, 2] = (n + f) / (n - f);
+    m[2, 3] = 2 * n * f / (n - f);
+    m[3, 2] = -1;
+    return m;
+  }
+
+  void ComputeEyesFromProfile() {
+    // Compute left eye matrices from screen and device params
+    leftEyeView = Matrix4x4.identity;
+    leftEyeView[0, 3] = -Profile.device.lenses.separation / 2;
+    float[] rect = GetLeftEyeVisibleTanAngles();
+    leftEyeProj = MakeProjection(rect[0], rect[1], rect[2], rect[3], 1, 1000);
+    rect = GetLeftEyeNoLensTanAngles();
+    leftEyeUndistortedProj = MakeProjection(rect[0], rect[1], rect[2], rect[3], 1, 1000);
+    leftEyeRect = GetLeftEyeVisibleScreenRect(rect);
+    // Right eye matrices same as left ones but for some sign flippage.
+    rightEyeView = leftEyeView;
+    rightEyeView[0, 3] *= -1;
+    rightEyeProj = leftEyeProj;
+    rightEyeProj[0, 2] *= -1;
+    rightEyeUndistortedProj = leftEyeUndistortedProj;
+    rightEyeUndistortedProj[0, 2] *= -1;
+    rightEyeRect = leftEyeRect;
+    rightEyeRect.x = 1 - rightEyeRect.xMax;
+  }
+
 #if ANDROID_DEVICE
+  // Right-handed to left-handed matrix converter.
+  private static readonly Matrix4x4 flipZ = Matrix4x4.Scale(new Vector3(1, 1, -1));
+
   private const string cardboardClass =
     "com.google.vrtoolkit.cardboard.plugins.unity.UnityCardboardActivity";
   private AndroidJavaObject cardboardActivity;
@@ -580,8 +676,9 @@ public class Cardboard : MonoBehaviour {
     float[] lensData = null;
     if (CallActivityMethod(ref lensData, "getLensParameters")) {
       device.lenses.separation = lensData[0];
-      device.lenses.height = lensData[1];
+      device.lenses.offset = lensData[1];
       device.lenses.screenDistance = lensData[2];
+      device.lenses.alignment = (int)lensData[3];
     }
 
     float[] screenSize = null;
@@ -614,9 +711,6 @@ public class Cardboard : MonoBehaviour {
 
     Profile = new CardboardProfile { screen=screen, device=device };
   }
-
-  // Right-handed to left-handed matrix converter.
-  private static readonly Matrix4x4 flipZ = Matrix4x4.Scale(new Vector3(1, 1, -1));
 
   public void UpdateFrameParamsFromActivity() {
     float[] frameInfo = null;
@@ -685,73 +779,45 @@ public class Cardboard : MonoBehaviour {
     downTime = NO_DOWNTIME;
   }
 
-#else
-
-  private static Matrix4x4 MakeProjection(float l, float t, float r, float b, float n, float f) {
-    Matrix4x4 m = Matrix4x4.zero;
-    m[0, 0] = 2 * n / (r - l);
-    m[1, 1] = 2 * n / (t - b);
-    m[0, 2] = (r + l) / (r - l);
-    m[1, 2] = (t + b) / (t - b);
-    m[2, 2] = (n + f) / (n - f);
-    m[2, 3] = 2 * n * f / (n - f);
-    m[3, 2] = -1;
-    return m;
-  }
-
-  private void UpdateSimulatedFrameParams() {
-    // Mock implementation for use in the Unity editor.
-    headView = Matrix4x4.identity;
-#if UNITY_EDITOR
-    SimulateHeadTracking();
-#endif
-
-    // Compute left eye matrices from screen and device params
-
-    leftEyeView = Matrix4x4.identity;
-    leftEyeView[0, 3] = -Profile.device.lenses.separation / 2;
-
-    float[] rect = GetLeftEyeVisibleTanAngles();
-    leftEyeProj = MakeProjection(rect[0], rect[1], rect[2], rect[3], 1, 1000);
-
-    rect = GetLeftEyeNoLensTanAngles();
-    leftEyeUndistortedProj = MakeProjection(rect[0], rect[1], rect[2], rect[3], 1, 1000);
-
-    leftEyeRect = GetLeftEyeVisibleScreenRect(rect);
-
-    // Right eye matrices same as left ones but for some sign flippage.
-
-    rightEyeView = leftEyeView;
-    rightEyeView[0, 3] *= -1;
-
-    rightEyeProj = leftEyeProj;
-    rightEyeProj[0, 2] *= -1;
-
-    rightEyeUndistortedProj = leftEyeUndistortedProj;
-    rightEyeUndistortedProj[0, 2] *= -1;
-
-    rightEyeRect = leftEyeRect;
-    rightEyeRect.x = 1 - rightEyeRect.xMax;
-  }
-#endif
-
-#if UNITY_EDITOR
-  [Tooltip("When playing in the editor, just release Ctrl to untilt the head.")]
+#elif UNITY_EDITOR
+  // Mock settings for in-editor emulation of Cardboard while playing.
+  [HideInInspector]
   public bool autoUntiltHead = true;
+
+  [HideInInspector]
+  public CardboardProfile.ScreenSizes screenSize = CardboardProfile.ScreenSizes.Nexus5;
+
+  [HideInInspector]
+  public CardboardProfile.DeviceTypes deviceType = CardboardProfile.DeviceTypes.CardboardV1;
+
+  [HideInInspector]
+  public bool simulateDistortionCorrection = true;
+
+  // Simulated neck model.
+  private static readonly Vector3 neckOffset = new Vector3(0, 0.075f, 0.08f);
 
   // Use mouse to emulate head in the editor.
   private float mouseX = 0;
   private float mouseY = 0;
   private float mouseZ = 0;
 
-  private void SimulateHeadTracking() {
+  private const float TOUCH_TIME_LIMIT = 0.2f;
+  private float touchStartTime = 0;
+
+  private void UpdateSimulatedScreenData() {
+    Profile = CardboardProfile.GetKnownProfile(screenSize, deviceType);
+    ComputeEyesFromProfile();
+  }
+
+  private void UpdateSimulatedFrameParams() {
     bool rolled = false;
     if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)) {
       mouseX += Input.GetAxis("Mouse X") * 5;
       if (mouseX <= -180) {
         mouseX += 360;
-      } else if (mouseX > 180)
+      } else if (mouseX > 180) {
         mouseX -= 360;
+      }
       mouseY -= Input.GetAxis("Mouse Y") * 2.4f;
       mouseY = Mathf.Clamp(mouseY, -80, 80);
     } else if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) {
@@ -764,13 +830,22 @@ public class Cardboard : MonoBehaviour {
       mouseZ = Mathf.Lerp(mouseZ, 0, Time.deltaTime / (Time.deltaTime + 0.1f));
     }
     var rot = Quaternion.Euler(mouseY, mouseX, mouseZ);
-    headView = Matrix4x4.TRS(Vector3.zero, rot, Vector3.one);
+    var neck = (rot * neckOffset - neckOffset.y * Vector3.up) * NeckModelScale;
+    headView = Matrix4x4.TRS(neck, rot, Vector3.one);
   }
 
-  private const float TOUCH_TIME_LIMIT = 0.2f;
-  private float touchStartTime = 0;
+  private void SimulateInput() {
+    if (Input.GetMouseButtonDown(0)
+        && (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))) {
+      if (InCardboard) {
+        OnRemovedFromCardboardInternal();
+      } else {
+        OnInsertedIntoCardboardInternal();
+      }
+      VRModeEnabled = !VRModeEnabled;
+      return;
+    }
 
-  private void SimulateTrigger() {
     if (!InCardboard) {
       return;  // Only simulate trigger pull if there is a trigger to pull.
     }
@@ -783,39 +858,6 @@ public class Cardboard : MonoBehaviour {
       }
       touchStartTime = 0;
     }
-  }
-#else
-  private GUIStyle style;
-
-  // The amount of time (in seconds) to show error message on GUI.
-  private const float GUI_ERROR_MSG_DURATION = 10;
-
-  private const string warning =
-@"Distortion correction is disabled.
-Requires Unity Android Pro v4.5+.
-See log for details.";
-
-  void OnGUI() {
-      if (Debug.isDebugBuild && !config.canApplyDistortionCorrection() &&
-              Time.realtimeSinceStartup <= GUI_ERROR_MSG_DURATION) {
-          DisplayDistortionCorrectionDisabledWarning();
-      }
-  }
-
-  private void DisplayDistortionCorrectionDisabledWarning() {
-      if (style == null) {
-          style = new GUIStyle();
-          style.normal.textColor = Color.red;
-          style.alignment = TextAnchor.LowerCenter;
-      }
-      if (VRModeEnabled) {
-          style.fontSize = (int)(50 * Screen.width / 1920f / 2);
-          GUI.Label(new Rect(0, 0, Screen.width / 2, Screen.height), warning, style);
-          GUI.Label(new Rect(Screen.width / 2, 0, Screen.width / 2, Screen.height), warning, style);
-      } else {
-          style.fontSize = (int)(50 * Screen.width / 1920f);
-          GUI.Label(new Rect(0, 0, Screen.width, Screen.height), warning, style);
-      }
   }
 #endif
 }

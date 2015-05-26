@@ -45,6 +45,9 @@ public class RoomInfo
     /// <summary>Backing field for property.</summary>
     protected string nameField;
 
+    /// <summary>Backing field for master client id (actorNumber). defined by server in room props and ev leave.</summary>
+    protected internal int masterClientIdField;
+
     /// <summary>Read-only "cache" of custom properties of a room. Set via Room.SetCustomProperties (not available for RoomInfo class!).</summary>
     /// <remarks>All keys are string-typed and the values depend on the game/application.</remarks>
     public Hashtable customProperties
@@ -216,6 +219,17 @@ public class RoomInfo
         if (propertiesToCache.ContainsKey(GameProperties.CleanupCacheOnLeave))
         {
             this.autoCleanUpField = (bool)propertiesToCache[GameProperties.CleanupCacheOnLeave];
+        }
+
+        if (propertiesToCache.ContainsKey(GameProperties.MasterClientId))
+        {
+            //UnityEngine.Debug.Log("MasterClientId: "+ propertiesToCache[GameProperties.MasterClientId]);
+            bool isUpdate = this.masterClientIdField != 0;
+            this.masterClientIdField = (int) propertiesToCache[GameProperties.MasterClientId];
+            if (isUpdate)
+            {
+                PhotonNetwork.networkingPeer.UpdateMasterClient();
+            }
         }
 
         //if (propertiesToCache.ContainsKey(GameProperties.PropsListedInLobby))

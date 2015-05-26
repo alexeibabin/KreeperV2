@@ -3,7 +3,7 @@ using UnityEngine;
 using System.Collections;
 
 /// <summary>
-/// This script automatically connects to Photon (using the settings file), 
+/// This script automatically connects to Photon (using the settings file),
 /// tries to join a random room and creates one if none was found (which is ok).
 /// </summary>
 public class ConnectAndJoinRandom : Photon.MonoBehaviour
@@ -36,9 +36,7 @@ public class ConnectAndJoinRandom : Photon.MonoBehaviour
 
     public virtual void OnConnectedToMaster()
     {
-        if (PhotonNetwork.networkingPeer.AvailableRegions != null){
-        	Debug.LogWarning("List of available regions counts " + PhotonNetwork.networkingPeer.AvailableRegions.Count + ". First: " + PhotonNetwork.networkingPeer.AvailableRegions[0] + " \t Current Region: " + PhotonNetwork.networkingPeer.CloudRegion);
-        }
+        if (PhotonNetwork.networkingPeer.AvailableRegions != null) Debug.LogWarning("List of available regions counts " + PhotonNetwork.networkingPeer.AvailableRegions.Count + ". First: " + PhotonNetwork.networkingPeer.AvailableRegions[0] + " \t Current Region: " + PhotonNetwork.networkingPeer.CloudRegion);
         Debug.Log("OnConnectedToMaster() was called by PUN. Now this client is connected and could join a room. Calling: PhotonNetwork.JoinRandomRoom();");
         PhotonNetwork.JoinRandomRoom();
     }

@@ -61,9 +61,10 @@ Shader "Cardboard/Radial Undistortion" {
         tex *= 1 + (_Distortion.x + _Distortion.y * r2) * r2;
         // Reproject the vector into the lens-affected frustum to get the texture coordinates
         // to look up.
-        tex = tex * _Projection.xy - _Projection.zw;
-        // Get the color.  But the coordinates may be out of bounds, so check for that.
-        fixed4 col = all(tex >= 0) && all(tex <= 1) ? tex2D(_MainTex, tex) : fixed4(0,0,0,1);
+        tex = saturate(tex * _Projection.xy - _Projection.zw);
+        // Get the color.
+        fixed vignette = saturate(min(min(tex.x, 1-tex.x), min(tex.y, 1-tex.y)) / 0.03);
+        fixed4 col = lerp(fixed4(0,0,0,1), tex2D(_MainTex, tex), vignette);
         return col;
       }
       ENDCG

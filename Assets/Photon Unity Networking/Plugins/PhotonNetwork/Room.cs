@@ -159,6 +159,21 @@ public class Room : RoomInfo
         }
     }
 
+	/// <summary>The ID (actorNumber) of the current Master Client of this room.</summary>
+    /// <remarks>See also: PhotonNetwork.masterClient.</remarks>
+    protected internal int masterClientId
+    {
+        get
+        {
+            return this.masterClientIdField;
+        }
+        set
+        {
+            this.masterClientIdField = value;
+        }
+    }
+
+
     internal Room(string roomName, RoomOptions options) : base(roomName, null)
     {
         if (options == null)

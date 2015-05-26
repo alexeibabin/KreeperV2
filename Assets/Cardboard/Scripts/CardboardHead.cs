@@ -15,6 +15,9 @@
 using UnityEngine;
 
 public class CardboardHead : MonoBehaviour {
+  // Which types of tracking this instance will use.
+  public bool trackRotation = true;
+  public bool trackPosition = true;
 
   // If set, the head transform will be relative to it.
   public Transform target;
@@ -58,11 +61,22 @@ public class CardboardHead : MonoBehaviour {
       return;
     }
 
-    var rot = Cardboard.SDK.HeadRotation;
-    if (target == null) {
-      transform.localRotation = rot;
-    } else {
-      transform.rotation = rot * target.rotation;
+    if (trackRotation) {
+      var rot = Cardboard.SDK.HeadRotation;
+      if (target == null) {
+        transform.localRotation = rot;
+      } else {
+        transform.rotation = rot * target.rotation;
+      }
+    }
+
+    if (trackPosition) {
+      Vector3 pos = Cardboard.SDK.HeadPosition;
+      if (target == null) {
+        transform.localPosition = pos;
+      } else {
+        transform.position = target.position + target.rotation * pos;
+      }
     }
   }
 }

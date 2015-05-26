@@ -13,16 +13,24 @@ public class CardboardProfile {
   // Information about the screen.  All distances in meters, measured as the phone is expected
   // to be placed in the Cardboard, i.e. landscape orientation.
   public struct Screen {
-    public float width;
-    public float height;
+    public float width;   // The long edge of the phone.
+    public float height;  // The short edge of the phone.
     public float border;  // Distance from bottom of the cardboard to the bottom edge of screen.
   }
 
   // Information about the lens placement in the Cardboard.  All distances in meters.
   public struct Lenses {
-    public float separation;  // Center to center.
-    public float height;      // Height of lens center from bottom of cardboard.
+    public float separation;     // Center to center.
+    public float offset;         // Offset of lens center from top or bottom of cardboard.
     public float screenDistance; // Distance from lens center to the phone screen.
+
+    public int alignment;  // Determines whether lenses are placed relative to top, bottom or
+                           // center.  It is actually a signum (-1, 0, +1) relating the scale of
+                           // the offset's coordinates to the device coordinates.
+
+    public const int AlignTop = -1;    // Offset is measured down from top of device.
+    public const int AlignCenter = 0;  // Center alignment ignores offset, hence scale is zero.
+    public const int AlignBottom = 1;  // Offset is measured up from bottom of device.
   }
 
   // Information about the viewing angles through the lenses.  All angles in degrees, measured
@@ -59,7 +67,18 @@ public class CardboardProfile {
   public Screen screen;
   public Device device;
 
+  // The vertical offset of the lens centers from the screen center.
+  public float VerticalLensOffset {
+    get {
+      return (device.lenses.offset - screen.border - screen.height/2) * device.lenses.alignment;
+    }
+  }
+
   // Some known profiles.
+
+  public enum ScreenSizes {
+    Nexus5,
+  };
 
   public static readonly Screen Nexus5 = new Screen {
     width = 0.110f,
@@ -67,11 +86,16 @@ public class CardboardProfile {
     border = 0.003f
   };
 
-  public static readonly Device Original = new Device {
+  public enum DeviceTypes {
+    CardboardV1
+  };
+
+  public static readonly Device CardboardV1 = new Device {
     lenses = {
       separation = 0.060f,
-      height = 0.035f,
-      screenDistance = 0.042f
+      offset = 0.035f,
+      screenDistance = 0.042f,
+      alignment = Lenses.AlignBottom,
     },
     maxFOV = {
       outer = 40.0f,
@@ -89,9 +113,25 @@ public class CardboardProfile {
     }
   };
 
-  // Nexus 5 in an original Cardboard.
+  // Nexus 5 in a v1 Cardboard.
   public static readonly CardboardProfile Default = new CardboardProfile {
     screen = Nexus5,
-    device = Original
+    device = CardboardV1
   };
+
+  public static CardboardProfile GetKnownProfile(ScreenSizes screenSize, DeviceTypes deviceType) {
+    Screen screen;
+    switch (screenSize) {
+      default:
+        screen = Nexus5;
+        break;
+    }
+    Device device;
+    switch (deviceType) {
+      default:
+        device = CardboardV1;
+        break;
+    }
+    return new CardboardProfile { screen = screen, device = device };
+  }
 }

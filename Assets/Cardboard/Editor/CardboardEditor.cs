@@ -33,8 +33,30 @@ public class CardboardEditor : Editor {
   GUIContent vrModeEnabledLabel = new GUIContent("VR Mode Enabled",
     "Explicitly set whether VR mode is enabled.  Clears the Auto Enable VR setting.");
 
+  GUIContent neckModelScaleLabel = new GUIContent("Neck Model Scale",
+    "The scale factor of the builtin neck model [0..1].  To disable, set to 0.");
+
   GUIContent backButtonExitsAppLabel = new GUIContent("Back Button Exits App",
     "Whether tapping the back button exits the app.");
+
+  GUIContent autoDriftCorrectionLabel = new GUIContent("Auto Drift Correction",
+    "When enabled, drift in the gyro readings is estimated and removed.  Currently only " +
+    "works on Android.");
+
+  GUIContent editorSettingsLabel = new GUIContent("Editor Mock Settings",
+    "Controls for the in-editor emulation of Cardboard.");
+
+  GUIContent autoUntiltHeadLabel = new GUIContent("Auto Untilt Head",
+    "When enabled, just release Ctrl to untilt the head.");
+
+  GUIContent screenSizeLabel = new GUIContent("Screen Size",
+    "The screen size to emulate.");
+
+  GUIContent deviceTypeLabel = new GUIContent("Device Type",
+    "The Cardboard device type to emulate.");
+
+  GUIContent simulateDistortionLabel = new GUIContent("Simulate Distortion Correction",
+    "Whether to perform distortion correction in the editor.");
 
   public override void OnInspectorGUI() {
     GUI.changed = false;
@@ -60,13 +82,41 @@ public class CardboardEditor : Editor {
       cardboard.EnableSettingsButton = newEnableSettingsButton;
     }
 
+    bool newAutoDriftCorrection =
+      EditorGUILayout.Toggle(autoDriftCorrectionLabel, cardboard.AutoDriftCorrection);
+    if (newAutoDriftCorrection != cardboard.AutoDriftCorrection) {
+      cardboard.AutoDriftCorrection = newAutoDriftCorrection;
+    }
+
     bool newVRModeEnabled = EditorGUILayout.Toggle(vrModeEnabledLabel, cardboard.VRModeEnabled);
     if (newVRModeEnabled != cardboard.VRModeEnabled) {
       cardboard.VRModeEnabled = newVRModeEnabled;
     }
 
+    float newNeckModelScale = EditorGUILayout.Slider(neckModelScaleLabel,
+                                                     cardboard.NeckModelScale, 0, 1);
+    if (!Mathf.Approximately(newNeckModelScale, cardboard.NeckModelScale)) {
+      cardboard.NeckModelScale = newNeckModelScale;
+    }
+
     cardboard.BackButtonExitsApp =
       EditorGUILayout.Toggle(backButtonExitsAppLabel, cardboard.BackButtonExitsApp);
+
+    EditorGUILayout.Separator();
+
+    EditorGUILayout.LabelField(editorSettingsLabel);
+
+    cardboard.autoUntiltHead = EditorGUILayout.Toggle(autoUntiltHeadLabel,
+                                                      cardboard.autoUntiltHead);
+
+    cardboard.simulateDistortionCorrection =
+        EditorGUILayout.Toggle(simulateDistortionLabel, cardboard.simulateDistortionCorrection);
+
+    cardboard.screenSize = (CardboardProfile.ScreenSizes)
+      EditorGUILayout.EnumPopup(screenSizeLabel, cardboard.screenSize);
+
+    cardboard.deviceType = (CardboardProfile.DeviceTypes)
+      EditorGUILayout.EnumPopup(deviceTypeLabel, cardboard.deviceType);
 
     if (GUI.changed) {
       EditorUtility.SetDirty(cardboard);

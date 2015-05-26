@@ -124,13 +124,35 @@ public class StereoController : MonoBehaviour {
   // Flags whether we rendered in stereo for this frame.
   private bool renderedStereo = false;
 
+  private Material material;
+
+#if !UNITY_EDITOR
+  // Cache for speed, except in editor (don't want to get out of sync with the scene).
+  private CardboardEye[] eyes;
+#endif
+
   // Returns the CardboardEye components that we control.
   public CardboardEye[] Eyes {
     get {
-      return GetComponentsInChildren<CardboardEye>(true)
-             .Where(eye => eye.Controller == this)
-             .ToArray();
+#if UNITY_EDITOR
+      CardboardEye[] eyes = null;  // Local variable rather than member, so as not to cache.
+#endif
+      if (eyes == null) {
+        eyes = GetComponentsInChildren<CardboardEye>(true)
+               .Where(eye => eye.Controller == this)
+               .ToArray();
+      }
+      return eyes;
     }
+  }
+
+  // Clear the cached array of CardboardEye children.
+  // NOTE: Be sure to call this if you programmatically change the set of CardboardEye children
+  // managed by this StereoController.
+  public void InvalidateEyes() {
+#if !UNITY_EDITOR
+    eyes = null;
+#endif
   }
 
   // Returns the nearest CardboardHead that affects our eyes.
@@ -147,8 +169,17 @@ public class StereoController : MonoBehaviour {
     }
   }
 
+  // In the Unity editor, at the point we need it, the Screen.height oddly includes the tab bar
+  // at the top of the Game window.  So subtract that out.
+  private int ScreenHeight {
+    get {
+      return Screen.height - (Application.isEditor && StereoScreen == null ? 36 : 0);
+    }
+  }
+
   void Awake() {
     AddStereoRig();
+    material = new Material(Shader.Find("Cardboard/SolidColor"));
   }
 
   // Helper routine for creation of a stereo rig.  Used by the
@@ -162,9 +193,11 @@ public class StereoController : MonoBehaviour {
     if (Head == null) {
       gameObject.AddComponent<CardboardHead>();
     }
+#if !UNITY_5
     if (GetComponent<Camera>().tag == "MainCamera" && GetComponent<SkyboxMesh>() == null) {
       gameObject.AddComponent<SkyboxMesh>();
     }
+#endif
   }
 
   // Helper routine for creation of a stereo eye.
@@ -173,12 +206,14 @@ public class StereoController : MonoBehaviour {
     GameObject go = new GameObject(nm);
     go.transform.parent = transform;
     go.AddComponent<Camera>().enabled = false;
+#if !UNITY_5
     if (GetComponent<GUILayer>() != null) {
       go.AddComponent<GUILayer>();
     }
     if (GetComponent("FlareLayer") != null) {
-      go.AddComponent<FlareLayer>();
+      go.AddComponent("FlareLayer");
     }
+#endif
     var cardboardEye = go.AddComponent<CardboardEye>();
     cardboardEye.eye = eye;
     cardboardEye.CopyCameraAndMakeSideBySide(this);
@@ -227,8 +262,12 @@ public class StereoController : MonoBehaviour {
     }
   }
 
-  void Start() {
+  void OnEnable() {
     StartCoroutine("EndOfFrame");
+  }
+
+  void OnDisable() {
+    StopCoroutine("EndOfFrame");
   }
 
   void OnPreCull() {
@@ -243,13 +282,64 @@ public class StereoController : MonoBehaviour {
     // to work as expected.
     GetComponent<Camera>().enabled = false;
 
+    bool mainCamera = (tag == "MainCamera");
+    if (mainCamera) {
+      // We just turned off the main camera, and are about to render two stereo eye cameras.
+      // Unfortunately, those two viewports may not fill the whole screen, so we need to clear it
+      // here, or else the pixels outside those rectangles will be colored with whatever garbage
+      // data that is left lying around in memory after all the rendering is done.
+      if (Application.isEditor) {
+        // Would really like to use GL.Clear, since that's the fastest way to do this, but in the
+        // editor that trashes the Game window's tab bar.  So use GL.Clear for the depth map only
+        // and fall back on the same routine we use for drawing the alignment marker in the editor
+        // to clear the color.
+        GL.Clear(true, false, Color.black);
+        FillScreenRect(Screen.width, ScreenHeight, Color.black);
+      } else {
+        GL.Clear(true, true, Color.black);
+      }
+    }
+
     // Render the eyes under our control.
     foreach (var eye in Eyes) {
       eye.Render();
     }
 
-    // Remember to reenable
+    if (mainCamera && Application.isEditor && Cardboard.SDK.EnableAlignmentMarker) {
+      // Draw an alignment marker here, since the native SDK which normally does this is not
+      // available on this platform.
+      FillScreenRect(4, ScreenHeight - 80, Color.gray);
+    }
+
+    // Remember to reenable.
     renderedStereo = true;
+  }
+
+  // Fill a portion of the whole screen with the given color.  The rectangle is centered, and has
+  // the given width and height.
+  private void FillScreenRect(int width, int height, Color color) {
+    int x = Screen.width/2;
+    int y = Screen.height/2;
+    // In the editor, at this point in the render pipeline, the screen height includes the tab
+    // bar at the top of the Game window.  Adjust for that.
+    if (Application.isEditor && StereoScreen == null) {
+      y -= 15;
+    }
+    width /= 2;
+    height /= 2;
+    material.color = color;
+    material.SetPass(0);
+    GL.PushMatrix();
+    GL.LoadPixelMatrix();
+    GL.Color(Color.white);
+    GL.Begin(GL.QUADS);
+    GL.Vertex3(x - width, y - height, 0);
+    GL.Vertex3(x - width, y + height, 0);
+    GL.Vertex3(x + width, y + height, 0);
+    GL.Vertex3(x + width, y - height, 0);
+    GL.End();
+    GL.PopMatrix();
+
   }
 
   IEnumerator EndOfFrame() {
@@ -261,9 +351,5 @@ public class StereoController : MonoBehaviour {
       }
       yield return new WaitForEndOfFrame();
     }
-  }
-
-  void OnDestroy() {
-    StopCoroutine("EndOfFrame");
   }
 }

@@ -50,8 +50,13 @@ public class PhotonPlayer
                 Debug.LogError("Error: Cannot change the name of a remote player!");
                 return;
             }
+            if (string.IsNullOrEmpty(value) || value.Equals(this.nameField))
+            {
+                return;
+            }
 
             this.nameField = value;
+            PhotonNetwork.playerName = value;   // this will sync the local player's name in a room
         }
     }
 
@@ -59,11 +64,14 @@ public class PhotonPlayer
     public readonly bool isLocal = false;
 
     /// <summary>
-    /// The player with the lowest actorID is the master and could be used for special tasks.
+    /// True if this player is the Master Client of the current room.
     /// </summary>
+    /// <remarks>
+    /// See also: PhotonNetwork.masterClient.
+    /// </remarks>
     public bool isMasterClient
     {
-        get { return (PhotonNetwork.networkingPeer.mMasterClient == this); }
+        get { return (PhotonNetwork.networkingPeer.mMasterClientId == this.ID); }
     }
 
     /// <summary>Read-only cache for custom properties of player. Set via Player.SetCustomProperties.</summary>
@@ -72,7 +80,7 @@ public class PhotonPlayer
     /// properties of this class to modify values. When you use those, the client will
     /// sync values with the server.
     /// </remarks>
-    public Hashtable customProperties { get; private set; }
+    public Hashtable customProperties { get; internal set; }
 
     /// <summary>Creates a Hashtable with all properties (custom and "well known" ones).</summary>
     /// <remarks>If used more often, this should be cached.</remarks>
@@ -159,6 +167,10 @@ public class PhotonPlayer
         if (properties.ContainsKey(ActorProperties.PlayerName))
         {
             this.nameField = (string)properties[ActorProperties.PlayerName];
+        }
+        if (properties.ContainsKey(ActorProperties.IsInactive))
+        {
+            // TODO: implement isinactive
         }
 
         this.customProperties.MergeStringKeys(properties);
