@@ -2,7 +2,7 @@
 using UnityEngine.UI;
 using System.Collections;
 
-public class LoadNext : MonoBehaviour
+public class SpashScreenLoadNext : MonoBehaviour
 {
 
     public float fadeInTimer = 2f;
