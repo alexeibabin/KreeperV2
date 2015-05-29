@@ -6,7 +6,8 @@ public class LoadNextScene : MonoBehaviour {
 	public enum Scenes {
 		MainMenu,
 		FirstLevel,
-		MultiplayerLevel
+		MultiplayerLevel,
+		Quit
 	}
 	
 	public Scenes loadLevel;
@@ -21,6 +22,9 @@ public class LoadNextScene : MonoBehaviour {
 				break;
 			case Scenes.MultiplayerLevel:
 				Application.LoadLevel("MultiplayerLevel");
+				break;
+			case Scenes.Quit:
+				Application.Quit();
 				break;
 		}
 	}
