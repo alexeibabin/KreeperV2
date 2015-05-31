@@ -12,7 +12,7 @@ public class LevelController : MonoBehaviour
     public GameObject visualAlarm;
     public AudioSource audioAlarm;
 
-    public float detectionTimeout = 3f;
+    public float levelRestartCountdown = 3f;
 
     private bool looseStatus = false;
     private bool winStatus = false;
@@ -68,10 +68,10 @@ public class LevelController : MonoBehaviour
         //audioAlarm.Stop();
     }
 
-	#region Coroutines
+    #region Coroutines
     IEnumerator RestartLevelCountdown()
     {
-        yield return new WaitForSeconds(detectionTimeout);
+        yield return new WaitForSeconds(levelRestartCountdown);
         SetPlayerFullyDetected();
         alarmStarted = false;
     }
@@ -79,6 +79,7 @@ public class LevelController : MonoBehaviour
     {
         Debug.Log("Gameover sequence started");
         yield return new WaitForSeconds(3f);
+        ResetPlayerPosition();
     }
     IEnumerator DisplayStartSequence()
     {
@@ -110,7 +111,7 @@ public class LevelController : MonoBehaviour
         }
     }
 
-    private void ResettPlayersPosition()
+    private void ResetPlayerPosition()
     {
         player.transform.position = playerSpawnPoint.transform.position;
         //foreach (GameObject player in GameObject.FindGameObjectsWithTag("Player"))
