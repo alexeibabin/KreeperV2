@@ -1,13 +1,13 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
-using System.Collections.Generic;
 
 public class LevelController : MonoBehaviour
 {
 
-    public GameObject player;
-    public GameObject playerSpawnPoint;
+    public GameObject playerPrefab;
+    public GameObject playerObject;
+    public Transform playerSpawnPoint;
 
     public GameObject visualAlarm;
     public AudioSource audioAlarm;
@@ -22,6 +22,12 @@ public class LevelController : MonoBehaviour
     private bool startSequenceStarted = true;
     private bool gameoverSequenceStarted = false;
     private bool alarmStarted = false;
+    
+    void Start(){
+        if (playerPrefab){
+            playerObject = (GameObject) Instantiate(playerPrefab,playerSpawnPoint.position,playerSpawnPoint.rotation);
+        }
+    }
 
     public void SetPlayerFullyDetected()
     {
@@ -113,7 +119,7 @@ public class LevelController : MonoBehaviour
 
     private void ResetPlayerPosition()
     {
-        player.transform.position = playerSpawnPoint.transform.position;
+        playerObject.transform.position = playerSpawnPoint.transform.position;
         //foreach (GameObject player in GameObject.FindGameObjectsWithTag("Player"))
         //{
         //    player.transform.position = pal

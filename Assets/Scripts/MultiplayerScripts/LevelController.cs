@@ -1,16 +1,15 @@
 ﻿using UnityEngine.UI;
 using UnityEngine;
-using System.Collections;
 
 
-//[RequireComponent(typeof(PhotonView))]
-public class RootNetworkController : Photon.MonoBehaviour
+public class LevelController : Photon.MonoBehaviour
 {
 
     public bool autoConnect = true;
     public byte version = 1;
     public Text statusText;
     public Text bigBody;
+    public GameObject standbyCamera;
 
     public GameObject localPlayerPrefab;
     public GameObject remotePlayerPrefab;
@@ -26,7 +25,7 @@ public class RootNetworkController : Photon.MonoBehaviour
 
 
     // Use this for initialization
-    public virtual void Start()
+    public override void Start()
     {
         PhotonNetwork.offlineMode = true;
         Debug.Log(PhotonNetwork.offlineMode);

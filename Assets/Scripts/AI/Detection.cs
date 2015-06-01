@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+[RequireComponent(typeof(Patrolling))]
 public class Detection : MonoBehaviour
 {
     [HeaderAttribute("The 'AHA! I've found you' sound" )]
@@ -33,7 +34,7 @@ public class Detection : MonoBehaviour
     {
         guardObjectName = gameObject.name;
         playersObjects = GameObject.FindGameObjectsWithTag("Player");
-        Debug.Log("Thess are the player object" + playersObjects);
+        Debug.Log("This is number of player objects: " + playersObjects.Length);
         levelController = GameObject.FindGameObjectWithTag("MainControllers").GetComponent<LevelController>();
         patrollingComponenet = gameObject.GetComponent<Patrolling>();
         localTransform = transform;
@@ -89,7 +90,6 @@ public class Detection : MonoBehaviour
     {
         if (!detectionSequenceStarted)
         {
-            patrollingComponenet.StopPatrolling();
             patrollingComponenet.FollowPlayerMovement();
             if (levelController)
             {
@@ -103,7 +103,6 @@ public class Detection : MonoBehaviour
         if (detectionSequenceStarted)
         {
             patrollingComponenet.StopFollowingPlayerMovement();
-            patrollingComponenet.ContinuePatrolling();
             if (levelController)
             {
                 levelController.StopCountdown();
