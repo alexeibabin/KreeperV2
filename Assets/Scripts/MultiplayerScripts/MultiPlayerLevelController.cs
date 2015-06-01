@@ -2,7 +2,7 @@
 using UnityEngine;
 
 
-public class LevelController : Photon.MonoBehaviour
+public class MultiPlayerLevelController : Photon.MonoBehaviour
 {
 
     public bool autoConnect = true;
@@ -25,7 +25,7 @@ public class LevelController : Photon.MonoBehaviour
 
 
     // Use this for initialization
-    public override void Start()
+    public virtual void Start()
     {
         PhotonNetwork.offlineMode = true;
         Debug.Log(PhotonNetwork.offlineMode);
