@@ -1,14 +1,15 @@
 ﻿using UnityEngine.UI;
 using UnityEngine;
+using UnityStandardAssets.Characters.FirstPerson;
 
-
-public class MultiPlayerLevelController : Photon.MonoBehaviour
+public class MultiPlayerLevelController : MonoBehaviour
 {
 
     public bool autoConnect = true;
     public byte version = 1;
     public Text statusText;
     public Text bigBody;
+
     public GameObject standbyCamera;
 
     public GameObject localPlayerPrefab;
@@ -20,30 +21,36 @@ public class MultiPlayerLevelController : Photon.MonoBehaviour
     public GameObject localPlayerGameObject;
     public GameObject remotePlayerGameObject;
 
+	private RoomInfo[] roomsList;
+	private bool alreadyInRoom=false;
+
     private bool connectOnUpdate = true;
     private bool localPlayerCreated = false;
 
+	void OnGUI()
+	{
+		GUILayout.Label(PhotonNetwork.connectionStateDetailed.ToString());
+	}
 
     // Use this for initialization
-    public virtual void Start()
+    void Start()
     {
-        PhotonNetwork.offlineMode = true;
-        Debug.Log(PhotonNetwork.offlineMode);
-        Debug.Log(PhotonNetwork.autoJoinLobby);
+		PhotonNetwork.logLevel = PhotonLogLevel.Informational;
+		PhotonNetwork.ConnectUsingSettings("0." + version);
+		PhotonNetwork.autoJoinLobby = true;
+
     }
 
-    // Update is called once per frame
-    public virtual void Update()
-    {
-        if (connectOnUpdate && autoConnect && !PhotonNetwork.connected)
-        {
-            Debug.Log("Trying to connect to PUN with the default settings");
-            connectOnUpdate = false;
-            //PhotonNetwork.autoJoinLobby = false;
-            PhotonNetwork.ConnectUsingSettings("0." + version);
-        }
-    }
-
+//
+//    {
+//        if (connectOnUpdate && autoConnect && !PhotonNetwork.connected)
+//        {
+//            Debug.Log("Trying to connect to PUN with the default settings");
+//            connectOnUpdate = false;
+//            //PhotonNetwork.autoJoinLobby = false;
+//        }
+//    }
+//
     #region Networking stuff
 
     public virtual void OnConnectedToMaster()
@@ -61,24 +68,61 @@ public class MultiPlayerLevelController : Photon.MonoBehaviour
 
     }
 
-    public virtual void OnCreatedRoom()
+	void OnReceivedRoomListUpdate()
+	{
+		if (alreadyInRoom) {
+			return;
+		}
+		roomsList = PhotonNetwork.GetRoomList();
+		bool foundRoom = false;
+		RoomInfo freeRoom = null; 	
+		RoomInfo[] rooms = PhotonNetwork.GetRoomList();
+		Debug.Log("Got room list: " + rooms.Length);
+		foreach(RoomInfo room in rooms){
+			if (room.playerCount < 2){
+				foundRoom = true;
+				freeRoom = room;
+				break;
+			}
+		}
+		
+		alreadyInRoom = true;
+		
+		if (foundRoom){
+			Debug.Log("Found a free room, named "+ freeRoom.name);
+			PhotonNetwork.JoinRoom(freeRoom.name);
+		}else{
+			Debug.Log("Could not find a good room, creating a new one");
+			PhotonNetwork.CreateRoom(null);
+		}
+		
+	}
+
+
+	public virtual void OnCreatedRoom()
     {
-        Debug.Log("Created a room and joined");
-        CreateLocalPlayer();
+		Debug.Log("Created a room "+ PhotonNetwork.room.name);
     }
 
     public virtual void OnJoinRandomRoom()
     {
         Debug.Log("Joined a random room");
-        CreateOtherPlayer();
-        CreateLocalPlayer();
     }
 
-    public virtual void OnJoinRoom()
+	public virtual void OnJoinedRoom()
     {
-        Debug.Log("Some player has joined a room");
-        CreateOtherPlayer();
-        CreateLocalPlayer();
+		Debug.Log("Joined Room "+ PhotonNetwork.room.name);
+
+		if (standbyCamera)
+		{
+			standbyCamera.SetActive(false);
+		}
+
+		if (PhotonNetwork.isMasterClient) {
+			EnableLocalPlayerComponents (ownerStartLocation);
+		} else {
+			EnableLocalPlayerComponents (guestStartLocation);
+		}
     }
 
     public virtual void OnFailedToConnectToPhoton(DisconnectCause cause)
@@ -89,7 +133,33 @@ public class MultiPlayerLevelController : Photon.MonoBehaviour
 
     #endregion
 
-    private void CreateLocalPlayer()
+
+	private void EnableLocalPlayerComponents(Transform instantiateLocation){
+		localPlayerGameObject = PhotonNetwork.Instantiate (localPlayerPrefab.name, instantiateLocation.position, instantiateLocation.rotation, 0);
+		localPlayerGameObject.GetComponent<MeshRenderer> ().enabled = false;
+		localPlayerGameObject.GetComponent<CharacterController> ().enabled = true;
+		localPlayerGameObject.GetComponent<Cardboard> ().enabled = true;
+		localPlayerGameObject.SetActive (true);
+		localPlayerGameObject.transform.FindChild ("Head").gameObject.SetActive (true);
+		localPlayerGameObject.transform.FindChild ("Head").FindChild ("Main Camera").gameObject.GetComponent<AudioListener> ().enabled = true;
+		localPlayerGameObject.GetComponent<FirstPersonController> ().enabled = true;
+	}
+
+
+    /*private void CreateOtherPlayer()
+    {
+        if (PhotonNetwork.isMasterClient)
+        {
+            // Instantiate the remote guest player
+            CreatePlayer(remotePlayerPrefab, guestStartLocation);
+        }
+        else
+        {
+            // You are the guest in the game, instantiate your player
+            CreatePlayer(remotePlayerPrefab, ownerStartLocation);
+        }
+    }
+        private void CreateLocalPlayer()
     {
         if (!localPlayerCreated)
         {
@@ -106,24 +176,14 @@ public class MultiPlayerLevelController : Photon.MonoBehaviour
         }
     }
 
-    private void CreateOtherPlayer()
-    {
-        if (PhotonNetwork.isMasterClient)
-        {
-            // Instantiate the remote guest player
-            CreatePlayer(remotePlayerPrefab, guestStartLocation);
-        }
-        else
-        {
-            // You are the guest in the game, instantiate your player
-            CreatePlayer(remotePlayerPrefab, ownerStartLocation);
-        }
-    }
-
     private void CreatePlayer(GameObject prefab, Transform startTransform)
     {
         int group = 0;
+        if (standbyCamera)
+        {
+            standbyCamera.SetActive(false);
+        }
         PhotonNetwork.Instantiate(prefab.name, startTransform.position, startTransform.rotation, group);
-    }
+    }*/
 
 }
