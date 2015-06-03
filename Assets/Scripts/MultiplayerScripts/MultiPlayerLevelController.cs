@@ -166,6 +166,7 @@ public class MultiPlayerLevelController : BaseLevelController
         localPlayerGameObject.GetComponent<CharacterController>().enabled = true;
         localPlayerGameObject.GetComponent<Cardboard>().enabled = true;
         localPlayerGameObject.SetActive(true);
+        localPlayerGameObject.transform.FindChild("Face").gameObject.SetActive(false);
         localPlayerGameObject.transform.FindChild("Head").gameObject.SetActive(true);
         localPlayerGameObject.transform.FindChild("Head").FindChild("Main Camera").gameObject.GetComponent<AudioListener>().enabled = true;
         localPlayerGameObject.GetComponent<FirstPersonController>().enabled = true;

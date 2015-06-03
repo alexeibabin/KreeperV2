@@ -1,25 +1,38 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class TransformSerializer : Photon.MonoBehaviour {
+public class TransformSerializer : Photon.MonoBehaviour
+{
 
     private Transform localTransform;
+
     private Vector3 nextPosition;
     private Quaternion nextRotation;
 
+    private Transform mainCameraTransform;
 
     void Start()
     {
         localTransform = transform;
+        if (localTransform.Find("Head"))
+        {
+            mainCameraTransform = localTransform.FindChild("Head").GetChild(0);
+        }
     }
 
 
     void Update()
     {
-        if (photonView.isMine)
+        if (!photonView.isMine)
         {
-            localTransform.position = Vector3.Lerp(transform.position, nextPosition, Time.deltaTime * 5);
-            localTransform.rotation = Quaternion.Lerp(transform.rotation, nextRotation, Time.deltaTime * 5);
+            Vector3 eulerAngles = nextRotation.eulerAngles;
+            eulerAngles.x = 0;
+            eulerAngles.z = 0;
+
+            localTransform.rotation = Quaternion.Euler(Vector3.Lerp(localTransform.rotation.eulerAngles, eulerAngles, 0.5f));
+            localTransform.position = Vector3.Lerp(localTransform.position, nextPosition, 0.5f);
+
+            //localTransform.rotation = Quaternion.Lerp(localTransform.rotation, nextRotation, 0.5f);
         }
     }
 
@@ -29,7 +42,16 @@ public class TransformSerializer : Photon.MonoBehaviour {
         {
             // We are sending data to the stream
             stream.SendNext(localTransform.position);
-            stream.SendNext(localTransform.rotation);
+
+            if (mainCameraTransform)
+            {
+                stream.SendNext(mainCameraTransform.rotation);
+            }
+            else
+            {
+                stream.SendNext(localTransform.rotation);
+            }
+
         }
         else
         {
