@@ -10,6 +10,7 @@ public class EnemyLocationSettingsContainer : MonoBehaviour
 
     public void SetEnemyParameters(GameObject enemy)
     {
+        Debug.Log("Setting enemy waypoints");
         enemy.GetComponent<Patrolling>().SetWaypoints(waypoints);
     }
 }
