@@ -2,7 +2,7 @@
 using UnityEngine.UI;
 using System.Collections;
 
-public class LevelController : MonoBehaviour
+public class LevelController : BaseLevelController
 {
 
     public GameObject playerPrefab;
@@ -21,7 +21,6 @@ public class LevelController : MonoBehaviour
 
     private bool startSequenceStarted = true;
     private bool gameoverSequenceStarted = false;
-    private bool alarmStarted = false;
     
     void Start(){
         if (playerPrefab){
@@ -34,65 +33,25 @@ public class LevelController : MonoBehaviour
         looseStatus = true;
     }
 
-    public void StartCountdown()
-    {
-        if (!alarmStarted)
-        {
-            StartAlarmAudio();
-            StartAlarmVisual();
-            StartCoroutine("RestartLevelCountdown");
-            alarmStarted = true;
-        }
-    }
-    public void StopCountdown()
-    {
-        if (alarmStarted)
-        {
-            StopAlarmAudio();
-            StopAlarmVisual();
-            StopCoroutine("RestartLevelCountdown");
-            alarmStarted = false;
-        }
-    }
-
-    protected void StartAlarmVisual()
-    {
-        //visualAlarm.SetActive(true);
-    }
-    protected void StopAlarmVisual()
-    {
-        //visualAlarm.SetActive(false);
-    }
-    protected void StartAlarmAudio()
-    {
-        //TODO: change this to 'fast' fadein
-        //audioAlarm.Play();
-    }
-    protected void StopAlarmAudio()
-    {
-        //TODO: change this to 'fast' fadeout
-        //audioAlarm.Stop();
-    }
-
     #region Coroutines
-    IEnumerator RestartLevelCountdown()
+    protected override IEnumerator RestartLevelCountdown()
     {
         yield return new WaitForSeconds(levelRestartCountdown);
         SetPlayerFullyDetected();
         alarmStarted = false;
     }
-    IEnumerator DisplayGameOverSequence()
+    protected override IEnumerator DisplayGameOverSequence()
     {
         Debug.Log("Gameover sequence started");
         yield return new WaitForSeconds(3f);
         ResetPlayerPosition();
     }
-    IEnumerator DisplayStartSequence()
+    protected override IEnumerator DisplayStartSequence()
     {
         Debug.Log("Start sequence initiated");
         yield return new WaitForSeconds(3f);
     }
-    IEnumerator DisplayWinSequence()
+    protected override IEnumerator DisplayWinSequence()
     {
         Debug.Log("Win sequence started");
         yield return new WaitForSeconds(3f);
@@ -117,12 +76,8 @@ public class LevelController : MonoBehaviour
         }
     }
 
-    private void ResetPlayerPosition()
+    protected override void ResetPlayerPosition()
     {
         playerObject.transform.position = playerSpawnPoint.transform.position;
-        //foreach (GameObject player in GameObject.FindGameObjectsWithTag("Player"))
-        //{
-        //    player.transform.position = pal
-        //}
     }
 }

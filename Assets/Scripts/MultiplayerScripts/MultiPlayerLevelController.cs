@@ -1,8 +1,9 @@
 ﻿using UnityEngine.UI;
 using UnityEngine;
+using System.Collections;
 using UnityStandardAssets.Characters.FirstPerson;
 
-public class MultiPlayerLevelController : MonoBehaviour
+public class MultiPlayerLevelController : BaseLevelController
 {
 
     public bool autoConnect = true;
@@ -21,36 +22,29 @@ public class MultiPlayerLevelController : MonoBehaviour
     public GameObject localPlayerGameObject;
     public GameObject remotePlayerGameObject;
 
-	private RoomInfo[] roomsList;
-	private bool alreadyInRoom=false;
+    public GameObject enemyPrefab;
+    public Transform[] enemiesStartLocations;
+
+    private RoomInfo[] roomsList;
+    private bool alreadyInRoom = false;
 
     private bool connectOnUpdate = true;
     private bool localPlayerCreated = false;
 
-	void OnGUI()
-	{
-		GUILayout.Label(PhotonNetwork.connectionStateDetailed.ToString());
-	}
-
-    // Use this for initialization
     void Start()
     {
-		PhotonNetwork.logLevel = PhotonLogLevel.Informational;
-		PhotonNetwork.ConnectUsingSettings("0." + version);
-		PhotonNetwork.autoJoinLobby = true;
-
+        PhotonNetwork.logLevel = PhotonLogLevel.Informational;
+        PhotonNetwork.ConnectUsingSettings("0." + version);
+        PhotonNetwork.autoJoinLobby = true;
     }
 
-//
-//    {
-//        if (connectOnUpdate && autoConnect && !PhotonNetwork.connected)
-//        {
-//            Debug.Log("Trying to connect to PUN with the default settings");
-//            connectOnUpdate = false;
-//            //PhotonNetwork.autoJoinLobby = false;
-//        }
-//    }
-//
+    
+    void OnGUI()
+    {
+        GUILayout.Label(PhotonNetwork.connectionStateDetailed.ToString());
+    }
+
+
     #region Networking stuff
 
     public virtual void OnConnectedToMaster()
@@ -68,40 +62,46 @@ public class MultiPlayerLevelController : MonoBehaviour
 
     }
 
-	void OnReceivedRoomListUpdate()
-	{
-		if (alreadyInRoom) {
-			return;
-		}
-		roomsList = PhotonNetwork.GetRoomList();
-		bool foundRoom = false;
-		RoomInfo freeRoom = null; 	
-		RoomInfo[] rooms = PhotonNetwork.GetRoomList();
-		Debug.Log("Got room list: " + rooms.Length);
-		foreach(RoomInfo room in rooms){
-			if (room.playerCount < 2){
-				foundRoom = true;
-				freeRoom = room;
-				break;
-			}
-		}
-		
-		alreadyInRoom = true;
-		
-		if (foundRoom){
-			Debug.Log("Found a free room, named "+ freeRoom.name);
-			PhotonNetwork.JoinRoom(freeRoom.name);
-		}else{
-			Debug.Log("Could not find a good room, creating a new one");
-			PhotonNetwork.CreateRoom(null);
-		}
-		
-	}
-
-
-	public virtual void OnCreatedRoom()
+    void OnReceivedRoomListUpdate()
     {
-		Debug.Log("Created a room "+ PhotonNetwork.room.name);
+        if (alreadyInRoom)
+        {
+            return;
+        }
+        roomsList = PhotonNetwork.GetRoomList();
+        bool foundRoom = false;
+        RoomInfo freeRoom = null;
+        RoomInfo[] rooms = PhotonNetwork.GetRoomList();
+        Debug.Log("Got room list: " + rooms.Length);
+        foreach (RoomInfo room in rooms)
+        {
+            if (room.playerCount < 2)
+            {
+                foundRoom = true;
+                freeRoom = room;
+                break;
+            }
+        }
+
+        alreadyInRoom = true;
+
+        if (foundRoom)
+        {
+            Debug.Log("Found a free room, named " + freeRoom.name);
+            PhotonNetwork.JoinRoom(freeRoom.name);
+        }
+        else
+        {
+            Debug.Log("Could not find a good room, creating a new one");
+            PhotonNetwork.CreateRoom(null);
+        }
+
+    }
+
+
+    public virtual void OnCreatedRoom()
+    {
+        Debug.Log("Created a room " + PhotonNetwork.room.name);
     }
 
     public virtual void OnJoinRandomRoom()
@@ -109,20 +109,24 @@ public class MultiPlayerLevelController : MonoBehaviour
         Debug.Log("Joined a random room");
     }
 
-	public virtual void OnJoinedRoom()
+    public virtual void OnJoinedRoom()
     {
-		Debug.Log("Joined Room "+ PhotonNetwork.room.name);
+        Debug.Log("Joined Room " + PhotonNetwork.room.name);
 
-		if (standbyCamera)
-		{
-			standbyCamera.SetActive(false);
-		}
+        if (standbyCamera)
+        {
+            standbyCamera.SetActive(false);
+        }
 
-		if (PhotonNetwork.isMasterClient) {
-			EnableLocalPlayerComponents (ownerStartLocation);
-		} else {
-			EnableLocalPlayerComponents (guestStartLocation);
-		}
+        if (PhotonNetwork.isMasterClient)
+        {
+            EnableLocalPlayerComponents(ownerStartLocation);
+            InitializeEnemies();
+        }
+        else
+        {
+            EnableLocalPlayerComponents(guestStartLocation);
+        }
     }
 
     public virtual void OnFailedToConnectToPhoton(DisconnectCause cause)
@@ -133,57 +137,50 @@ public class MultiPlayerLevelController : MonoBehaviour
 
     #endregion
 
+    #region Coroutines
 
-	private void EnableLocalPlayerComponents(Transform instantiateLocation){
-		localPlayerGameObject = PhotonNetwork.Instantiate (localPlayerPrefab.name, instantiateLocation.position, instantiateLocation.rotation, 0);
-		localPlayerGameObject.GetComponent<MeshRenderer> ().enabled = false;
-		localPlayerGameObject.GetComponent<CharacterController> ().enabled = true;
-		localPlayerGameObject.GetComponent<Cardboard> ().enabled = true;
-		localPlayerGameObject.SetActive (true);
-		localPlayerGameObject.transform.FindChild ("Head").gameObject.SetActive (true);
-		localPlayerGameObject.transform.FindChild ("Head").FindChild ("Main Camera").gameObject.GetComponent<AudioListener> ().enabled = true;
-		localPlayerGameObject.GetComponent<FirstPersonController> ().enabled = true;
-	}
-
-
-    /*private void CreateOtherPlayer()
+    protected override IEnumerator RestartLevelCountdown()
     {
-        if (PhotonNetwork.isMasterClient)
-        {
-            // Instantiate the remote guest player
-            CreatePlayer(remotePlayerPrefab, guestStartLocation);
-        }
-        else
-        {
-            // You are the guest in the game, instantiate your player
-            CreatePlayer(remotePlayerPrefab, ownerStartLocation);
-        }
+        yield return new WaitForSeconds(1);
     }
-        private void CreateLocalPlayer()
+    protected override IEnumerator DisplayGameOverSequence()
     {
-        if (!localPlayerCreated)
-        {
-            if (PhotonNetwork.isMasterClient)
-            {
-                CreatePlayer(localPlayerPrefab, ownerStartLocation);
-            }
-            else
-            {
-                CreatePlayer(localPlayerPrefab, guestStartLocation);
-            }
-            localPlayerCreated = true;
+        yield return new WaitForSeconds(1);
+    }
+    protected override IEnumerator DisplayStartSequence()
+    {
+        yield return new WaitForSeconds(1);
+    }
+    protected override IEnumerator DisplayWinSequence()
+    {
+        yield return new WaitForSeconds(1);
+    }
+    #endregion
 
-        }
+    protected override void ResetPlayerPosition() { }
+
+    private void EnableLocalPlayerComponents(Transform instantiateLocation)
+    {
+        localPlayerGameObject = PhotonNetwork.Instantiate(localPlayerPrefab.name, instantiateLocation.position, instantiateLocation.rotation, 0);
+        localPlayerGameObject.GetComponent<MeshRenderer>().enabled = false;
+        localPlayerGameObject.GetComponent<CharacterController>().enabled = true;
+        localPlayerGameObject.GetComponent<Cardboard>().enabled = true;
+        localPlayerGameObject.SetActive(true);
+        localPlayerGameObject.transform.FindChild("Head").gameObject.SetActive(true);
+        localPlayerGameObject.transform.FindChild("Head").FindChild("Main Camera").gameObject.GetComponent<AudioListener>().enabled = true;
+        localPlayerGameObject.GetComponent<FirstPersonController>().enabled = true;
     }
 
-    private void CreatePlayer(GameObject prefab, Transform startTransform)
+    void InitializeEnemies()
     {
-        int group = 0;
-        if (standbyCamera)
+        GameObject tempEnemy;
+        foreach (Transform enemyStartLocation in enemiesStartLocations)
         {
-            standbyCamera.SetActive(false);
+            tempEnemy = PhotonNetwork.Instantiate(enemyPrefab.name, enemyStartLocation.position, enemyStartLocation.rotation, 0);
+            tempEnemy.GetComponent<Patrolling>().enabled = true;
+            tempEnemy.GetComponent<Detection>().enabled = true;
+            enemyStartLocation.gameObject.GetComponent<EnemyLocationSettingsContainer>().SetEnemyParameters(tempEnemy);
         }
-        PhotonNetwork.Instantiate(prefab.name, startTransform.position, startTransform.rotation, group);
-    }*/
+    }
 
 }
