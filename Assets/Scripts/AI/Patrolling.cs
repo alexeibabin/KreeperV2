@@ -188,5 +188,14 @@ public class Patrolling : MonoBehaviour
         myVelocity = Vector3.zero;
         animator.SetFloat("HorizontalVelosity", myVelocity.magnitude);
     }
+
+    public void SetWaypoints(Transform[] waypoints)
+    {
+        if (waypointsList == null )
+        {
+            waypointsList = new List<Transform>();
+        }
+        waypointsList.AddRange(waypoints);
+    }
 }
 
