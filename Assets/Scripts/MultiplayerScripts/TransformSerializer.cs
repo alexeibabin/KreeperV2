@@ -4,7 +4,10 @@ using System.Collections;
 public class TransformSerializer : Photon.MonoBehaviour
 {
 
+	public Transform headBone; 
+
     private Transform localTransform;
+
 
     private Vector3 nextPosition;
     private Quaternion nextRotation;
@@ -25,14 +28,19 @@ public class TransformSerializer : Photon.MonoBehaviour
     {
         if (!photonView.isMine)
         {
-            Vector3 eulerAngles = nextRotation.eulerAngles;
-            eulerAngles.x = 0;
-            eulerAngles.z = 0;
+            Vector3 bodyAngles = nextRotation.eulerAngles;
+			Vector3 headAngles = new Vector3(0, bodyAngles.z, -bodyAngles.x);
+            bodyAngles.x = 0;
+            bodyAngles.z = 0;
 
-            localTransform.rotation = Quaternion.Euler(Vector3.Lerp(localTransform.rotation.eulerAngles, eulerAngles, 0.5f));
+            localTransform.rotation = Quaternion.Euler(Vector3.Lerp(localTransform.rotation.eulerAngles, bodyAngles, 0.5f));
             localTransform.position = Vector3.Lerp(localTransform.position, nextPosition, 0.5f);
 
-            //localTransform.rotation = Quaternion.Lerp(localTransform.rotation, nextRotation, 0.5f);
+			if (headBone){
+				//headBone.rotation = Quaternion.Euler(Vector3.Lerp(headBone.rotation.eulerAngles, headAngles, 0.5f));
+				headBone.localRotation = Quaternion.Euler(headAngles);
+			}
+            
         }
     }
 

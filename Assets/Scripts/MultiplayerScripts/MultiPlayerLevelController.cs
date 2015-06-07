@@ -8,8 +8,8 @@ public class MultiPlayerLevelController : BaseLevelController
 
     public bool autoConnect = true;
     public byte version = 1;
-    public Text statusText;
-    public Text bigBody;
+//    public Text statusText;
+//    public Text bigBody;
 
     public GameObject standbyCamera;
 
@@ -19,8 +19,6 @@ public class MultiPlayerLevelController : BaseLevelController
     public Transform ownerStartLocation;
     public Transform guestStartLocation;
 
-    public GameObject localPlayerGameObject;
-    public GameObject remotePlayerGameObject;
 
     public GameObject enemyPrefab;
     public Transform[] enemiesStartLocations;
@@ -30,6 +28,9 @@ public class MultiPlayerLevelController : BaseLevelController
 
     private bool connectOnUpdate = true;
     private bool localPlayerCreated = false;
+
+	private GameObject localPlayerGameObject;
+	private GameObject remotePlayerGameObject;
 
     void Start()
     {
@@ -162,11 +163,11 @@ public class MultiPlayerLevelController : BaseLevelController
     private void EnableLocalPlayerComponents(Transform instantiateLocation)
     {
         localPlayerGameObject = PhotonNetwork.Instantiate(localPlayerPrefab.name, instantiateLocation.position, instantiateLocation.rotation, 0);
-        localPlayerGameObject.GetComponent<MeshRenderer>().enabled = false;
         localPlayerGameObject.GetComponent<CharacterController>().enabled = true;
         localPlayerGameObject.GetComponent<Cardboard>().enabled = true;
         localPlayerGameObject.SetActive(true);
-        localPlayerGameObject.transform.FindChild("Face").gameObject.SetActive(false);
+		localPlayerGameObject.transform.FindChild("Human_Man").gameObject.SetActive(false);
+		Debug.Log (localPlayerGameObject.transform.FindChild ("Head"));
         localPlayerGameObject.transform.FindChild("Head").gameObject.SetActive(true);
         localPlayerGameObject.transform.FindChild("Head").FindChild("Main Camera").gameObject.GetComponent<AudioListener>().enabled = true;
         localPlayerGameObject.GetComponent<FirstPersonController>().enabled = true;
