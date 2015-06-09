@@ -3,6 +3,8 @@ using System.Collections;
 
 public abstract class BaseLevelController : MonoBehaviour {
 
+    public int retries = 3;
+
     protected bool alarmStarted = false;
 
     protected abstract void ResetPlayerPosition();

@@ -29,6 +29,7 @@ public class Patrolling : MonoBehaviour
 
     private int currentWayPointIndex = 0;
 
+	private GameObject playerObject;
     private Transform playerObjectTransform;
     private Transform localTransform;
     private Rigidbody physicsComponenet;
@@ -40,9 +41,17 @@ public class Patrolling : MonoBehaviour
         animator = GetComponent<Animator>();
         localTransform = transform;
         physicsComponenet = GetComponent<Rigidbody>();
-        playerObjectTransform = GameObject.FindGameObjectWithTag("Player").transform;
-        Debug.Log("This is the transform of the player: "+playerObjectTransform);
+		playerObject = GameObject.FindGameObjectWithTag("Player");
+		if (playerObject) {
+			playerObjectTransform = playerObject.transform;
+		}
     }
+
+	void FixedUpdate(){
+		if (!playerObjectTransform) {
+			playerObjectTransform = GameObject.FindGameObjectWithTag("Player").transform;
+		}
+	}
 
     void OnDrawGizmos()
     {

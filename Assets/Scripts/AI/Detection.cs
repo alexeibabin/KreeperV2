@@ -40,10 +40,28 @@ public class Detection : MonoBehaviour
         localTransform = transform;
     }
 
+	void FixedUpdate(){
+		if (playersObjects.Length == 0) {
+			playersObjects = GameObject.FindGameObjectsWithTag("Player");
+		}
+	}
+
     public void NewPlayerHasSpawned()
     {
         playersObjects = GameObject.FindGameObjectsWithTag("Player");
     }
+
+	void OnDrawGizmos(){
+		//Gizmos.DrawWireSphere(transform.position, 
+		Gizmos.color = Color.red;
+		Gizmos.DrawRay (transform.position, Quaternion.Euler (0, detectionAngle, 0) * transform.forward * horizontalDetection);
+		Gizmos.DrawRay (transform.position, Quaternion.Euler (0, -detectionAngle, 0) * transform.forward * horizontalDetection);
+		Gizmos.color = Color.green;
+		Gizmos.DrawRay (transform.position, Quaternion.Euler (detectionAngle,0 , 0) * transform.forward * verticalDetection);
+		Gizmos.DrawRay (transform.position, Quaternion.Euler (-detectionAngle,0 , 0) * transform.forward * verticalDetection);
+
+	}
+
 
     void LateUpdate()
     {

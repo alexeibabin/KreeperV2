@@ -79,5 +79,10 @@ public class LevelController : BaseLevelController
     protected override void ResetPlayerPosition()
     {
         playerObject.transform.position = playerSpawnPoint.transform.position;
+        if (--retries < 0)
+        {
+            Application.LoadLevel("MainMenu");
+        }
+
     }
 }
