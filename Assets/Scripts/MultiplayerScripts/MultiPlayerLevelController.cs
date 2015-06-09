@@ -8,8 +8,7 @@ public class MultiPlayerLevelController : BaseLevelController
 
     public bool autoConnect = true;
     public byte version = 1;
-//    public Text statusText;
-//    public Text bigBody;
+
 
     public GameObject standbyCamera;
 
@@ -61,6 +60,21 @@ public class MultiPlayerLevelController : BaseLevelController
             PhotonNetwork.CreateRoom("Random Room!!!");
         }
 
+    }
+
+    void OnPhotonInstantiate(PhotonMessageInfo messageInfo)
+    {
+        
+    }
+
+    void OnPhotonPlayerConnected(PhotonPlayer player)
+    {
+
+    }
+
+    void OnPhotonPlayerDisconnected(PhotonPlayer player)
+    {
+        
     }
 
     void OnReceivedRoomListUpdate()
@@ -184,5 +198,7 @@ public class MultiPlayerLevelController : BaseLevelController
             enemyStartLocation.gameObject.GetComponent<EnemyLocationSettingsContainer>().SetEnemyParameters(tempEnemy);
         }
     }
+
+
 
 }
