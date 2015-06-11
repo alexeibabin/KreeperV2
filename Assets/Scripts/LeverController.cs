@@ -52,6 +52,9 @@ public class LeverController : MonoBehaviour {
 	}
 
 	void OnDrawGizmos(){
+		if(controlledObjects.Length < 1)
+			return;
+
 		foreach (var controlledObject in controlledObjects){
 			Gizmos.DrawLine(transform.position, controlledObject.transform.position);
 		}

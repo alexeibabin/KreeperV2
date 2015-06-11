@@ -45,6 +45,7 @@ public class MapWayPoint : MonoBehaviour {
             return;
 
         transform.position = hit.point + new Vector3(0, initialHeight, 0);
+		particles.transform.position = transform.position;
     }
 	
 	// Update is called once per frame
