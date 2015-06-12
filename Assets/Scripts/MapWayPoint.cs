@@ -4,7 +4,7 @@ using System;
 
 public class MapWayPoint : MonoBehaviour {
 
-    public static float initialHeight = 1f;
+    public float initialHeight = 1f;
     
 
     public float timeToActivation = 0.5f;

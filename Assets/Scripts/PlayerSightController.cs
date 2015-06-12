@@ -50,14 +50,15 @@ public class PlayerSightController : MonoBehaviour {
 
     private void MoveTowardsWaypoint()
     {
+		Debug.Log ("Player is moving to the target");
         Vector3 dir = (nextTarget.transform.position - transform.position).normalized;
         transform.position = transform.position + dir * movementSpeed * Time.deltaTime;
 
-        if (Vector3.Magnitude(transform.position - nextTarget.transform.position) < 0.3f)
-        {
-            transform.position = nextTarget.transform.position;
-            state = PlayerState.idle;
-        }
+        if (Vector3.Magnitude (transform.position - nextTarget.transform.position) < 0.3f) {
+			Debug.Log("Player should be idle");
+			transform.position = nextTarget.transform.position;
+			state = PlayerState.idle;
+		}
     }
 
     private void Look()
@@ -81,8 +82,10 @@ public class PlayerSightController : MonoBehaviour {
 
     private void SetMoveTarget(MapWayPoint wp)
     {
+		Vector3 wpPosition = new Vector3 (wp.transform.position.x, wp.transform.position.y, wp.transform.position.z);
+
         nextTarget = wp;
         state = PlayerState.moving;
-        PlayerMovedEvent(wp.transform.position);
+		PlayerMovedEvent(wpPosition);
     }
 }
