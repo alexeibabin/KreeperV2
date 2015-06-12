@@ -25,6 +25,8 @@ public class LevelController : BaseLevelController
     void Start(){
         if (playerPrefab){
             playerObject = (GameObject) Instantiate(playerPrefab,playerSpawnPoint.position,playerSpawnPoint.rotation);
+        }else{
+        	playerObject = GameObject.FindWithTag("Player");
         }
     }
 
