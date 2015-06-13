@@ -13,11 +13,14 @@ public class LeverController : MonoBehaviour {
 	private float lookTime;
     private float cooldownTime;
 
+	private Animator _animator; 
+
 	private Transform localTransform;
     private Color defaultColor;
     private Material _mat;
 
 	void Start(){
+		_animator = GetComponent<Animator> ();
 		localTransform = transform;
         _mat = GetComponentInChildren<Renderer>().material;
         defaultColor = _mat.color;
@@ -26,6 +29,7 @@ public class LeverController : MonoBehaviour {
 	void Activate(){
 		isActivated = true;
         cooldownTime = actionCoolDown;
+		_animator.SetTrigger ("Activate");
 
         foreach (var contObj in controlledObjects)
         {
@@ -36,6 +40,7 @@ public class LeverController : MonoBehaviour {
 	void Deactivate(){
 		isDeactivated = true;
         cooldownTime = actionCoolDown;
+		_animator.SetTrigger ("Deactivate");
 
         foreach (var contObj in controlledObjects)
         {
