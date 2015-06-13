@@ -69,6 +69,7 @@ public class PlayerSightController : MonoBehaviour {
         {
             MapWayPoint wp = hitInfo.collider.gameObject.GetComponent<MapWayPoint>();
 			LeverController lc = hitInfo.collider.gameObject.GetComponent<LeverController>();
+			PickableObject pco = hitInfo.collider.gameObject.GetComponent<PickableObject>();
             if (wp){
                 if (wp.LookAt(_t))
                     SetMoveTarget(wp);
@@ -77,6 +78,11 @@ public class PlayerSightController : MonoBehaviour {
                 if (lc.LookAt())
                     lc.Use();
             }
+			else if (pco){
+				if (pco.LookAt(_t)){
+					pco.PickUp();
+				}
+			}
         }
     }
 

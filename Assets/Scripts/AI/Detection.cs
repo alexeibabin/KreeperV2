@@ -12,7 +12,7 @@ public class Detection : MonoBehaviour
     public float horizontalDetection=10f;
     
     [HeaderAttribute("Minimal Vertical Detection Distance")]
-    [RangeAttribute(1,3)]
+    [RangeAttribute(1,20)]
     public float verticalDetection = 2f;
     
     [HeaderAttribute("Forward Detection Angle")]
@@ -84,14 +84,18 @@ public class Detection : MonoBehaviour
         bool detected = false;
         if (Mathf.Abs(localTransform.position.y - playerObjectTransform.position.y) < verticalDetection)
         {
+			Debug.Log("Player is at the same level as the enemy");
             if (Vector3.Distance(localTransform.position, playerObjectTransform.position) < horizontalDetection)
             {
+				Debug.Log("Player close to the enemy");
                 Vector3 playerPositionDelta = playerObjectTransform.position - localTransform.position;
                 if (Vector3.Angle(playerPositionDelta, transform.forward) < detectionAngle)
                 {
+					Debug.Log("Player is at a good detection angle to the enemy"); 
                     RaycastHit hit;
                     if (Physics.Raycast(localTransform.position, playerPositionDelta, out hit, horizontalDetection))
                     {
+						Debug.Log("I've hit the object" + hit);
                         if (hit.collider.tag == "Player")
                         {
                             detected = true;

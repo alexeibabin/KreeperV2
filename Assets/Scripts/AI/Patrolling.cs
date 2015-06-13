@@ -92,7 +92,7 @@ public class Patrolling : MonoBehaviour
     {
         if (!followingPlayerMovement)
         {
-            Debug.Log("Following hte player (public function)");
+            Debug.Log("Following the player (public function)");
             StopPatrolling();
             StartCoroutine("FollowThePlayer");
             followingPlayerMovement = true;
