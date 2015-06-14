@@ -19,6 +19,8 @@ public class Detection : MonoBehaviour
     [RangeAttribute(30,120)]
     public float detectionAngle = 90f;
 
+	public Transform eyes;
+
     private bool detectionSequenceStarted = false;
 
     private string guardObjectName;
@@ -84,18 +86,21 @@ public class Detection : MonoBehaviour
         bool detected = false;
         if (Mathf.Abs(localTransform.position.y - playerObjectTransform.position.y) < verticalDetection)
         {
-			Debug.Log("Player is at the same level as the enemy");
+			//Debug.Log("Player is at the same level as the enemy");
             if (Vector3.Distance(localTransform.position, playerObjectTransform.position) < horizontalDetection)
             {
-				Debug.Log("Player close to the enemy");
+//				Debug.Log("Player close to the enemy");
                 Vector3 playerPositionDelta = playerObjectTransform.position - localTransform.position;
+				playerPositionDelta.y=0;
                 if (Vector3.Angle(playerPositionDelta, transform.forward) < detectionAngle)
                 {
-					Debug.Log("Player is at a good detection angle to the enemy"); 
+//					Debug.Log("Player is at a good detection angle to the enemy"); 
                     RaycastHit hit;
-                    if (Physics.Raycast(localTransform.position, playerPositionDelta, out hit, horizontalDetection))
+					Debug.DrawRay(eyes.position, playerPositionDelta);
+					Debug.Log(playerPositionDelta);
+                    if (Physics.Raycast(eyes.position, playerPositionDelta, out hit, horizontalDetection))
                     {
-						Debug.Log("I've hit the object" + hit);
+//						Debug.Log("I've hit the object " + hit.collider.name);
                         if (hit.collider.tag == "Player")
                         {
                             detected = true;

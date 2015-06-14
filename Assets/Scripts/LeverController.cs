@@ -10,8 +10,8 @@ public class LeverController : MonoBehaviour {
 
 	private bool isActivated=false;
 	private bool isDeactivated=false;
-	private float lookTime;
-    private float cooldownTime;
+	private float lookTime = 0;
+    private float cooldownTime = 0;
 
 	private Animator _animator; 
 

@@ -21,7 +21,7 @@ public class LoadNextScene : MonoBehaviour {
 				Application.LoadLevel("MainMenu");
 				break;
 			case Scenes.MultiplayerLevel:
-				Application.LoadLevel("MultiplayerLevel");
+			Application.LoadLevel("Mutli Scene");
 				break;
 			case Scenes.Quit:
 				Application.Quit();
