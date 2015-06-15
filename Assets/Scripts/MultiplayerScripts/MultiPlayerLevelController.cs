@@ -184,7 +184,7 @@ public class MultiPlayerLevelController : BaseLevelController
 		Debug.Log (localPlayerGameObject.transform.FindChild ("Head"));
         localPlayerGameObject.transform.FindChild("Head").gameObject.SetActive(true);
         localPlayerGameObject.transform.FindChild("Head").FindChild("Main Camera").gameObject.GetComponent<AudioListener>().enabled = true;
-        localPlayerGameObject.GetComponent<FirstPersonController>().enabled = true;
+        //localPlayerGameObject.GetComponent<FirstPersonController>().enabled = true;
     }
 
     void InitializeEnemies()
