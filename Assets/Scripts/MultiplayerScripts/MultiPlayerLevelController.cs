@@ -18,6 +18,9 @@ public class MultiPlayerLevelController : BaseLevelController
     public Transform ownerStartLocation;
     public Transform guestStartLocation;
 
+	public FadeIn fadeInSequence;
+	public FadeOut fadeOutSequence;
+
 
     public GameObject enemyPrefab;
     public Transform[] enemiesStartLocations;
@@ -36,6 +39,7 @@ public class MultiPlayerLevelController : BaseLevelController
         PhotonNetwork.logLevel = PhotonLogLevel.Informational;
         PhotonNetwork.ConnectUsingSettings("0." + version);
         PhotonNetwork.autoJoinLobby = true;
+		StartCoroutine ("DisplayStartSequence");
     }
 
     
@@ -60,21 +64,6 @@ public class MultiPlayerLevelController : BaseLevelController
             PhotonNetwork.CreateRoom("Random Room!!!");
         }
 
-    }
-
-    void OnPhotonInstantiate(PhotonMessageInfo messageInfo)
-    {
-        
-    }
-
-    void OnPhotonPlayerConnected(PhotonPlayer player)
-    {
-
-    }
-
-    void OnPhotonPlayerDisconnected(PhotonPlayer player)
-    {
-        
     }
 
     void OnReceivedRoomListUpdate()
@@ -156,6 +145,7 @@ public class MultiPlayerLevelController : BaseLevelController
 
     protected override IEnumerator RestartLevelCountdown()
     {
+		fadeOutSequence.Activate ();
         yield return new WaitForSeconds(1);
     }
     protected override IEnumerator DisplayGameOverSequence()
@@ -164,6 +154,7 @@ public class MultiPlayerLevelController : BaseLevelController
     }
     protected override IEnumerator DisplayStartSequence()
     {
+		fadeInSequence.Activate ();
         yield return new WaitForSeconds(1);
     }
     protected override IEnumerator DisplayWinSequence()
