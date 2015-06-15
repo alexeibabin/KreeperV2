@@ -9,23 +9,32 @@ public class LoadNextScene : MonoBehaviour {
 		MultiplayerLevel,
 		Quit
 	}
-	
+
+	public FadeIn fadeInSequence;
+	public FadeOut fadeOutSequence;
+
 	public Scenes loadLevel;
 
 	public void Activate(){
 		switch (loadLevel){
 			case Scenes.FirstLevel:
-				Application.LoadLevel("FirstLevel");
+				StartCoroutine("LoadLevel","FirstLevel");
 				break;
 			case Scenes.MainMenu:
-				Application.LoadLevel("MainMenu");
+			StartCoroutine("LoadLevel","MainMenu");
 				break;
 			case Scenes.MultiplayerLevel:
-			Application.LoadLevel("Mutli Scene");
+			StartCoroutine("LoadLevel","Mutli Scene");
 				break;
 			case Scenes.Quit:
 				Application.Quit();
 				break;
 		}
+	}
+
+	IEnumerator LoadLevel(string levelName){
+		fadeOutSequence.Activate ();
+		yield return new WaitForSeconds(1);
+		Application.LoadLevel(levelName);
 	}
 }

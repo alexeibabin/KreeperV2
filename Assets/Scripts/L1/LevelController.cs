@@ -5,6 +5,9 @@ using System.Collections;
 public class LevelController : BaseLevelController
 {
 
+	public FadeIn fadeInSequence;
+	public FadeOut fadeOutSequence;
+
     public GameObject playerPrefab;
     public GameObject playerObject;
     public Transform playerSpawnPoint;
@@ -16,7 +19,9 @@ public class LevelController : BaseLevelController
 
     private bool looseStatus = false;
     private bool winStatus = false;
-    private bool statrtStatus = false;
+    private bool statrtStatus = true;
+
+	private bool coroutineStarted = false;
 
 
     private bool startSequenceStarted = true;
@@ -28,6 +33,7 @@ public class LevelController : BaseLevelController
         }else{
         	playerObject = GameObject.FindWithTag("Player");
         }
+
     }
 
     public void SetPlayerFullyDetected()
@@ -40,23 +46,31 @@ public class LevelController : BaseLevelController
     {
         yield return new WaitForSeconds(levelRestartCountdown);
         SetPlayerFullyDetected();
+		fadeOutSequence.Activate ();
+
         alarmStarted = false;
+		coroutineStarted = false;
     }
     protected override IEnumerator DisplayGameOverSequence()
     {
         Debug.Log("Gameover sequence started");
         yield return new WaitForSeconds(3f);
         ResetPlayerPosition();
+		fadeInSequence.Activate ();
+		coroutineStarted = false;
     }
     protected override IEnumerator DisplayStartSequence()
     {
         Debug.Log("Start sequence initiated");
-        yield return new WaitForSeconds(3f);
+		fadeInSequence.Activate ();
+        yield return new WaitForSeconds(1f);
+		coroutineStarted = false;
     }
     protected override IEnumerator DisplayWinSequence()
     {
         Debug.Log("Win sequence started");
         yield return new WaitForSeconds(3f);
+		coroutineStarted = false;
     }
     #endregion
 
@@ -67,13 +81,15 @@ public class LevelController : BaseLevelController
     {
         if (looseStatus)
         {
-            StartCoroutine("DisplayGameOverSequence");
+			if (!coroutineStarted) 
+            	StartCoroutine("DisplayGameOverSequence");
             looseStatus = false;
         }
 
         if (statrtStatus)
         {
-            StartCoroutine("DisplayStartSequence");
+			if (!coroutineStarted)
+            	StartCoroutine("DisplayStartSequence");
             statrtStatus = false;
         }
     }
