@@ -104,6 +104,10 @@ public class PlayerSightController : MonoBehaviour
         PlayerMovedEvent(wpPosition);
     }
 
+	public void ResetWaypoints() {
+		PlayerMovedEvent(transform.position);
+	}
+
     public void SetPlayerIdle()
     {
         state = PlayerState.idle;

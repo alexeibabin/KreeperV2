@@ -82,7 +82,8 @@ public class LevelController : BaseLevelController
     {
         playerObject.GetComponent<PlayerSightController>().SetPlayerIdle();
         playerObject.transform.position = playerSpawnPoint.transform.position;
-        
+		playerObject.GetComponent<PlayerSightController>().ResetWaypoints();
+
         if (--retries < 0)
         {
             Application.LoadLevel("MainMenu");
