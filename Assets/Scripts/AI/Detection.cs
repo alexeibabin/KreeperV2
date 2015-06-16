@@ -32,8 +32,11 @@ public class Detection : MonoBehaviour
     private Patrolling patrollingComponenet;
     private Vector3 guardPlayerRelativePosition;
 
+	private PhotonView pv;
+
     void Start()
     {
+		pv = GetComponent<PhotonView> ();
         guardObjectName = gameObject.name;
         playersObjects = GameObject.FindGameObjectsWithTag("Player");
         Debug.Log("This is number of player objects: " + playersObjects.Length);
@@ -48,6 +51,7 @@ public class Detection : MonoBehaviour
 		}
 	}
 
+	[RPC]
     public void NewPlayerHasSpawned()
     {
         playersObjects = GameObject.FindGameObjectsWithTag("Player");
@@ -120,6 +124,9 @@ public class Detection : MonoBehaviour
             patrollingComponenet.FollowPlayerMovement();
             if (levelController)
             {
+				if (pv)
+					pv.RPC("StartCountdown",PhotonTargets.Others);
+
                 levelController.StartCountdown();
             }
             detectionSequenceStarted = true;
@@ -129,6 +136,8 @@ public class Detection : MonoBehaviour
     {
         if (detectionSequenceStarted)
         {
+			if (pv)
+				pv.RPC("StopCountdown",PhotonTargets.Others);
             patrollingComponenet.StopFollowingPlayerMovement();
             if (levelController)
             {

@@ -27,7 +27,7 @@ public class LeverController : MonoBehaviour {
 	}
 
 	void Activate(){
-		Debug.Log ("Activating");
+		//Debug.Log ("Activating");
 		isActivated = true;
 		isDeactivated = false;
         cooldownTime = actionCoolDown;
@@ -40,7 +40,7 @@ public class LeverController : MonoBehaviour {
 	}
 	
 	void Deactivate(){
-		Debug.Log ("Deactivating");
+		//Debug.Log ("Deactivating");
 		isActivated = false;
 		isDeactivated = true;
         cooldownTime = actionCoolDown;
@@ -87,8 +87,8 @@ public class LeverController : MonoBehaviour {
 
     public bool LookAt()
     {
-		Debug.Log (gameObject.name + " Is being looked at");
-		Debug.Log (gameObject.name + "Parameters:  "+ cooldownTime+ " "+lookTime);
+		//Debug.Log (gameObject.name + " Is being looked at");
+		//Debug.Log (gameObject.name + "Parameters:  "+ cooldownTime+ " "+lookTime);
         if (cooldownTime >= 0)
             return false;
 
@@ -104,7 +104,7 @@ public class LeverController : MonoBehaviour {
 
     public void Use()
     {
-		Debug.Log ("Using");
+		//Debug.Log ("Using");
         if (isActivated)
             Deactivate();
         else

@@ -31,14 +31,18 @@ public class MultiPlayerLevelController : BaseLevelController
     private bool connectOnUpdate = true;
     private bool localPlayerCreated = false;
 
+	private ArrayList guards;
+
 	private GameObject localPlayerGameObject;
 	private GameObject remotePlayerGameObject;
+	
 
     void Start()
     {
         PhotonNetwork.logLevel = PhotonLogLevel.Informational;
         PhotonNetwork.ConnectUsingSettings("0." + version);
         PhotonNetwork.autoJoinLobby = true;
+		guards = new ArrayList ();
 		StartCoroutine ("DisplayStartSequence");
     }
 
@@ -51,7 +55,7 @@ public class MultiPlayerLevelController : BaseLevelController
 
     #region Networking stuff
 
-    public virtual void OnConnectedToMaster()
+	public void OnConnectedToMaster()
     {
         Debug.Log("OnConnectedToMaster was called by PUN. Now we can join a room, calling PhotonNetwork.JoinRandomRoom()");
         //PhotonNetwork.JoinLobby();
@@ -103,17 +107,17 @@ public class MultiPlayerLevelController : BaseLevelController
     }
 
 
-    public virtual void OnCreatedRoom()
+	public void OnCreatedRoom()
     {
         Debug.Log("Created a room " + PhotonNetwork.room.name);
     }
 
-    public virtual void OnJoinRandomRoom()
+	public void OnJoinRandomRoom()
     {
         Debug.Log("Joined a random room");
     }
 
-    public virtual void OnJoinedRoom()
+	public void OnJoinedRoom()
     {
         Debug.Log("Joined Room " + PhotonNetwork.room.name);
 
@@ -133,7 +137,7 @@ public class MultiPlayerLevelController : BaseLevelController
         }
     }
 
-    public virtual void OnFailedToConnectToPhoton(DisconnectCause cause)
+	public void OnFailedToConnectToPhoton(DisconnectCause cause)
     {
         Debug.Log("Could not connect to PUN!");
         Debug.Log("Reason: " + cause);
@@ -147,6 +151,9 @@ public class MultiPlayerLevelController : BaseLevelController
     {
 		fadeOutSequence.Activate ();
         yield return new WaitForSeconds(1);
+		ResetPlayerPosition();
+		fadeInSequence.Activate ();
+		
     }
     protected override IEnumerator DisplayGameOverSequence()
     {
@@ -163,7 +170,27 @@ public class MultiPlayerLevelController : BaseLevelController
     }
     #endregion
 
-    protected override void ResetPlayerPosition() { }
+    protected override void ResetPlayerPosition() {
+		Vector3 startPostition;
+		Quaternion startRotation;
+
+		if (!PhotonNetwork.isMasterClient) {
+			startPostition = ownerStartLocation.position;
+			startRotation = ownerStartLocation.rotation;
+		} else {
+			startPostition = guestStartLocation.position;
+			startRotation = guestStartLocation.rotation;
+		}
+		localPlayerGameObject.GetComponent<PlayerSightController>().SetPlayerIdle();
+		localPlayerGameObject.transform.position = startPostition;
+		localPlayerGameObject.GetComponent<PlayerSightController>().ResetWaypoints();
+		
+		if (--retries < 0)
+		{
+			Application.LoadLevel("MainMenu");
+		}
+		
+	}
 
     private void EnableLocalPlayerComponents(Transform instantiateLocation)
     {
@@ -175,8 +202,11 @@ public class MultiPlayerLevelController : BaseLevelController
 		Debug.Log (localPlayerGameObject.transform.FindChild ("Head"));
         localPlayerGameObject.transform.FindChild("Head").gameObject.SetActive(true);
         localPlayerGameObject.transform.FindChild("Head").FindChild("Main Camera").gameObject.GetComponent<AudioListener>().enabled = true;
+		
         //localPlayerGameObject.GetComponent<FirstPersonController>().enabled = true;
     }
+
+	
 
     void InitializeEnemies()
     {
@@ -187,6 +217,7 @@ public class MultiPlayerLevelController : BaseLevelController
             tempEnemy.GetComponent<Patrolling>().enabled = true;
             tempEnemy.GetComponent<Detection>().enabled = true;
             enemyStartLocation.gameObject.GetComponent<EnemyLocationSettingsContainer>().SetEnemyParameters(tempEnemy);
+			guards.Add(tempEnemy);
         }
     }
 

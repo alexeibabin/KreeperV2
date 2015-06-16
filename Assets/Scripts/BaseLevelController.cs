@@ -32,6 +32,7 @@ public abstract class BaseLevelController : MonoBehaviour {
         //audioAlarm.Stop();
     }
 
+	[RPC]
     public void StartCountdown()
     {
         if (!alarmStarted)
@@ -42,6 +43,7 @@ public abstract class BaseLevelController : MonoBehaviour {
             alarmStarted = true;
         }
     }
+	[RPC]
     public void StopCountdown()
     {
         if (alarmStarted)
